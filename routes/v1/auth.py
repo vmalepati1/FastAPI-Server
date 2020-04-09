@@ -7,12 +7,12 @@ router = APIRouter()
 login = Login()
 
 @router.post(
-  '/get_token',
-  response_model=Token,
-  response_description="Returns user access token",
-  summary="Authenticate API user",
-  description="Authenticate an API user and return a token for subsequent requests",
-  responses = {400: {"model": Detail}}
+    '/get_token',
+    response_model=Token,
+    response_description="Returns user private access token. Make sure to keep the token secret.",
+    summary="Authenticate API user",
+    description="Authenticate an API user and return a token for subsequent requests",
+    responses = {400: {"model": Detail}}
 )
 
 async def get_token(form_data: OAuth2PasswordRequestForm = Depends()):

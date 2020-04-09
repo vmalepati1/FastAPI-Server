@@ -5,9 +5,9 @@ from fastapi import HTTPException
 
 class User:
     
-    def __init__(self, usr=None, role=None, ap=None, tp=None):
+    def __init__(self, usr='', is_admin=False, ap='', tp=''):
         self.username = usr
-        self.role = role
+        self.is_admin = is_admin
         self.action_permissions = ap
         self.table_permissions = tp
 
@@ -18,7 +18,7 @@ class User:
         if expiry < 0:
             return jwt.encode({
                         'sub': self.username,
-                        'rol': self.role,
+                        'iad': self.is_admin,
                         'acp': self.action_permissions,
                         'tbp': self.table_permissions,
                         'iat': datetime.utcnow(),
@@ -26,7 +26,7 @@ class User:
         
         return jwt.encode({
             'sub': self.username,
-            'rol': self.role,
+            'iad': self.is_admin,
             'acp': self.action_permissions,
             'tbp': self.table_permissions,
             'iat': datetime.utcnow(),
@@ -45,7 +45,7 @@ class User:
                 raise HTTPException(status_code=400, detail="Error: " + str(e))
 
         self.username = data['sub']
-        self.role = data['rol']
+        self.is_admin = data['iad']
         self.action_permissions = data['acp']
         self.table_permissions = data['tbp']
 

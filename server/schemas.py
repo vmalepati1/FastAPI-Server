@@ -6,3 +6,6 @@ class Token(BaseModel):
 
 class Detail(BaseModel):
     detail: str
+
+class QueryResult(BaseModel):
+    rows: tuple

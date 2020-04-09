@@ -8,14 +8,15 @@ class Login():
 
     def validate_user(self, username, password):
         cur = self.db.query("""
-                            SELECT role, action_permissions, table_permissions FROM users WHERE
-                            username = %s AND password = %s;""",
+                            SELECT IS_admin, Action_permissions, Table_permissions FROM operators WHERE
+                            Username = %s AND Password = %s;""",
                             [username, password])
 
         r = cur.fetchone()
 
         if not r:
             return {"status": "failed", "details": "Username/password incorrect"}
-                            
+
+        print(r[0])                    
         return {"status": "success", "user": User(username, r[0], r[1], r[2])}
         

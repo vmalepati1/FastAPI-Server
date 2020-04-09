@@ -1,0 +1,5 @@
+CREATE = 'create'
+READ = 'read'
+INSERT = 'insert'
+UPDATE = 'update'
+DELETE = 'delete'

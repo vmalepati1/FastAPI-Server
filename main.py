@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 
 import os
-from routes.v1 import auth
+from routes.v1 import auth, query
 
 app = FastAPI(
   title="MySQL API Server",
@@ -13,6 +13,12 @@ app.include_router(
   auth.router,
   prefix='/v1/auth',
   tags=["Authentication"]
+)
+
+app.include_router(
+  query.router,
+  prefix='/v1/query',
+  tags=["Query"]
 )
 
 # Testing only

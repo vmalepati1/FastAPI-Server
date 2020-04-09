@@ -24,7 +24,7 @@ class Database:
             conn.close()
             return cursor
 
-    def queryMany(self, sql, args=None):
+    def query_many(self, sql, args=None):
             conn = self.connect()
             cursor = conn.cursor()
             cursor.executemany(sql,args)

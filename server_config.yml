@@ -12,4 +12,4 @@ api_db:
     db: api_db
 server_settings:
     jwt_key: secret
-    token_expiry_minutes: -1
+    token_expiry_minutes: 60

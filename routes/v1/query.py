@@ -5,6 +5,9 @@ from authentication.user import User
 from database.permissions import Permissions
 from database.db import Database
 from database.actions import *
+import time
+import datetime
+import re
 
 router = APIRouter()
 perms = Permissions()
@@ -67,7 +70,7 @@ async def read(what_to_select : str, which_table : str, conditions_to_satisfy : 
     responses = {200: {"model": Detail}, 400: {"model": Detail}, 403: {"model": Detail}}
 )
 
-async def insert(table_name : str, value_names : str, column_names : str = None, token: str = Depends(oauth2_scheme)):
+async def insert(table_name : str, values : str, column_names : str = None, token: str = Depends(oauth2_scheme)):
     user = User()
     user.validate_token(token)
     perms.validate_action(user, INSERT, table_name)
@@ -75,13 +78,32 @@ async def insert(table_name : str, value_names : str, column_names : str = None,
     try:
         if not column_names:
             db.query("INSERT INTO {0} VALUES ({1});"
-                 .format(table_name, value_names))
+                 .format(table_name, values))
         else:
             db.query("INSERT INTO {0} ({1}) VALUES ({2});"
-                 .format(table_name, column_names, value_names))
+                 .format(table_name, column_names, values))
+
+        cur = db.query("SHOW columns FROM {0};"
+                 .format(table_name))
+        
+        fields = [c[0] for c in cur.fetchall()]
+
+        pk = fields[0]
+
+        ts = time.time()
+        timestamp = datetime.datetime.fromtimestamp(ts).strftime('%Y-%m-%d %H:%M:%S')
+
+        if 'Created_at' in fields:
+            db.query("UPDATE {0} SET Created_at = '{1}' WHERE {2} = {3};"
+                 .format(table_name, timestamp, pk, values[0]))
+            
+        if 'Modified_at' in fields:
+            db.query("UPDATE {0} SET Modified_at = '{1}' WHERE {2} = {3};"
+                 .format(table_name, timestamp, pk, values[0]))
+
     except Exception as e:
         raise HTTPException(status_code=400, detail="Error: " + str(e))
-        
+
     return {"detail": "Success"}
 
 @router.put(
@@ -98,12 +120,33 @@ async def update(table_name : str, set_statements : str, where_condition : str =
     perms.validate_action(user, UPDATE, table_name)
 
     try:
+        cur = db.query("SHOW columns FROM {0};"
+         .format(table_name))
+    
+        fields = [c[0] for c in cur.fetchall()]
+
+        pk = fields[0]
+
+        ts = time.time()
+        timestamp = datetime.datetime.fromtimestamp(ts).strftime('%Y-%m-%d %H:%M:%S')
+
         if not where_condition:
+            if 'Modified_at' in fields:
+                db.query("UPDATE {0} SET Modified_at = '{1}';"
+                     .format(table_name, timestamp))
+                
             db.query("UPDATE {0} SET {1};"
                  .format(table_name, set_statements))
         else:
+            if 'Modified_at' in fields:
+                pk_val = re.split(r'[,\s]\s*', where_condition)[2]
+
+                db.query("UPDATE {0} SET Modified_at = '{1}' WHERE {2} = {3};"
+                     .format(table_name, timestamp, pk, pk_val))
+                
             db.query("UPDATE {0} SET {1} WHERE {2};"
                  .format(table_name, set_statements, where_condition))
+
     except Exception as e:
         raise HTTPException(status_code=400, detail="Error: " + str(e))
         

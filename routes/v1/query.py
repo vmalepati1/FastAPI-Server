@@ -83,3 +83,53 @@ async def insert(table_name : str, value_names : str, column_names : str = None,
         raise HTTPException(status_code=400, detail="Error: " + str(e))
         
     return {"detail": "Success"}
+
+@router.put(
+    '/update',
+    response_model=Detail,
+    response_description="Returns status of request",
+    summary="Update record in the database. Not specifying the where clause will update all records.",
+    responses = {200: {"model": Detail}, 400: {"model": Detail}, 403: {"model": Detail}}
+)
+
+async def update(table_name : str, set_statements : str, where_condition : str = None, token: str = Depends(oauth2_scheme)):
+    user = User()
+    user.validate_token(token)
+    perms.validate_action(user, UPDATE, table_name)
+
+    try:
+        if not where_condition:
+            db.query("UPDATE {0} SET {1};"
+                 .format(table_name, set_statements))
+        else:
+            db.query("UPDATE {0} SET {1} WHERE {2};"
+                 .format(table_name, set_statements, where_condition))
+    except Exception as e:
+        raise HTTPException(status_code=400, detail="Error: " + str(e))
+        
+    return {"detail": "Success"}
+
+@router.delete(
+    '/delete',
+    response_model=Detail,
+    response_description="Returns status of request",
+    summary="Delete record from the database. Not specifying the where clause will delete all records.",
+    responses = {200: {"model": Detail}, 400: {"model": Detail}, 403: {"model": Detail}}
+)
+
+async def delete(table_name : str, where_condition : str = None, token: str = Depends(oauth2_scheme)):
+    user = User()
+    user.validate_token(token)
+    perms.validate_action(user, DELETE, table_name)
+
+    try:
+        if not where_condition:
+            db.query("DELETE FROM {0};"
+                 .format(table_name, where_condition))
+        else:
+            db.query("DELETE FROM {0} WHERE {1};"
+                 .format(table_name, where_condition))
+    except Exception as e:
+        raise HTTPException(status_code=400, detail="Error: " + str(e))
+        
+    return {"detail": "Success"}

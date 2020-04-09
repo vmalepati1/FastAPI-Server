@@ -13,6 +13,7 @@ class Database:
                                 passwd=ServerConfig().get_config()[self.key]['password'],
                                 db=ServerConfig().get_config()[self.key]['db'])
 
+        conn.autocommit(True)
         return conn
 
     def query(self, sql, args=None):

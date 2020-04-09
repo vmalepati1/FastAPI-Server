@@ -13,7 +13,7 @@ class User:
 
     def get_token(self):
         key = ServerConfig().get_config()['server_settings']['jwt_key']
-        expiry = ServerConfig().get_config()['server_settings']['expiry']
+        expiry = ServerConfig().get_config()['server_settings']['token_expiry_minutes']
         
         if expiry < 0:
             return jwt.encode({
@@ -30,7 +30,7 @@ class User:
             'acp': self.action_permissions,
             'tbp': self.table_permissions,
             'iat': datetime.utcnow(),
-            'exp': datetime.utcnow() + timedelta(seconds=expiry)
+            'exp': datetime.utcnow() + timedelta(minutes=expiry)
         }, key, algorithm='HS256')
 
     def validate_token(self, token):

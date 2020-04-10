@@ -9,12 +9,16 @@ import time
 import datetime
 import re
 
+# Following routes are for performing database query requests
 router = APIRouter()
 perms = Permissions()
+# Establish database for the query API
 db = Database('api_db')
 
+# Enables us to retrieve token passed through the Authorization header
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl='/v1/auth/get_token')
 
+# Create a table
 @router.post(
     '/create',
     response_model=Detail,
@@ -24,10 +28,12 @@ oauth2_scheme = OAuth2PasswordBearer(tokenUrl='/v1/auth/get_token')
 )
 
 async def create(table_name : str, field_defs : str, token: str = Depends(oauth2_scheme)):
+    # Validate token and retrieve user data
     user = User()
     user.validate_token(token)
     perms.validate_action(user, CREATE)
 
+    # Perform SQL query
     try:
         db.query("CREATE TABLE {0} ({1});"
                  .format(table_name, field_defs))
@@ -36,6 +42,29 @@ async def create(table_name : str, field_defs : str, token: str = Depends(oauth2
         
     return {"detail": "Success"}
 
+# Drop a table
+##@router.delete(
+##    '/drop',
+##    response_model=Detail,
+##    response_description="Returns status of request",
+##    summary="Remove a table in the database",
+##    responses = {200: {"model": Detail}, 400: {"model": Detail}, 403: {"model": Detail}}
+##)
+##
+##async def drop(table_list : str, token: str = Depends(oauth2_scheme)):
+##    user = User()
+##    user.validate_token(token)
+##    perms.validate_action(user, DROP)
+##
+##    try:
+##        db.query("DROP TABLE {0};"
+##                 .format(table_list))
+##    except Exception as e:
+##        raise HTTPException(status_code=400, detail="Error: " + str(e))
+##        
+##    return {"detail": "Success"}
+
+# Read a record
 @router.get(
     '/read',
     response_model=QueryResult,
@@ -70,6 +99,7 @@ async def read(what_to_select : str, which_table : str, conditions_to_satisfy : 
     responses = {200: {"model": Detail}, 400: {"model": Detail}, 403: {"model": Detail}}
 )
 
+# Insert a record
 async def insert(table_name : str, values : str, column_names : str = None, token: str = Depends(oauth2_scheme)):
     user = User()
     user.validate_token(token)
@@ -93,6 +123,8 @@ async def insert(table_name : str, values : str, column_names : str = None, toke
         ts = time.time()
         timestamp = datetime.datetime.fromtimestamp(ts).strftime('%Y-%m-%d %H:%M:%S')
 
+        # Inserting a record requires management of the "Created_at" and "Modified_at" fields,
+        # if they exist. Find record by primary key and then update with current time stamp.
         if 'Created_at' in fields:
             db.query("UPDATE {0} SET Created_at = '{1}' WHERE {2} = {3};"
                  .format(table_name, timestamp, pk, values[0]))
@@ -106,6 +138,7 @@ async def insert(table_name : str, values : str, column_names : str = None, toke
 
     return {"detail": "Success"}
 
+# Update a record
 @router.put(
     '/update',
     response_model=Detail,
@@ -131,6 +164,7 @@ async def update(table_name : str, set_statements : str, where_condition : str =
         timestamp = datetime.datetime.fromtimestamp(ts).strftime('%Y-%m-%d %H:%M:%S')
 
         if not where_condition:
+            # Update Modified_at with current timestamp for all records
             if 'Modified_at' in fields:
                 db.query("UPDATE {0} SET Modified_at = '{1}';"
                      .format(table_name, timestamp))
@@ -138,7 +172,9 @@ async def update(table_name : str, set_statements : str, where_condition : str =
             db.query("UPDATE {0} SET {1};"
                  .format(table_name, set_statements))
         else:
+            # Update Modified_at with current timestamp for just the changed record
             if 'Modified_at' in fields:
+                # Find the primary key of the changed record
                 pk_val = re.split(r'[,\s]\s*', where_condition)[2]
 
                 db.query("UPDATE {0} SET Modified_at = '{1}' WHERE {2} = {3};"
@@ -152,6 +188,7 @@ async def update(table_name : str, set_statements : str, where_condition : str =
         
     return {"detail": "Success"}
 
+# Delete a record
 @router.delete(
     '/delete',
     response_model=Detail,

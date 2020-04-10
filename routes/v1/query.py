@@ -115,10 +115,13 @@ async def insert(table_name : str, values : str, column_names : str = None, toke
 
         cur = db.query("SHOW columns FROM {0};"
                  .format(table_name))
-        
         fields = [c[0] for c in cur.fetchall()]
 
-        pk = fields[0]
+        cur = db.query("SHOW KEYS FROM {0} WHERE Key_name = 'PRIMARY';"
+                 .format(table_name))
+        dat = cur.fetchone()
+        pk_index = dat[3] - 1
+        pk = dat[4]
 
         ts = time.time()
         timestamp = datetime.datetime.fromtimestamp(ts).strftime('%Y-%m-%d %H:%M:%S')
@@ -127,11 +130,11 @@ async def insert(table_name : str, values : str, column_names : str = None, toke
         # if they exist. Find record by primary key and then update with current time stamp.
         if 'Created_at' in fields:
             db.query("UPDATE {0} SET Created_at = '{1}' WHERE {2} = {3};"
-                 .format(table_name, timestamp, pk, values[0]))
+                 .format(table_name, timestamp, pk, re.split(r'[,\s]\s*', values)[pk_index]))
             
         if 'Modified_at' in fields:
             db.query("UPDATE {0} SET Modified_at = '{1}' WHERE {2} = {3};"
-                 .format(table_name, timestamp, pk, values[0]))
+                 .format(table_name, timestamp, pk, re.split(r'[,\s]\s*', values)[pk_index]))
 
     except Exception as e:
         raise HTTPException(status_code=400, detail="Error: " + str(e))
@@ -154,12 +157,9 @@ async def update(table_name : str, set_statements : str, where_condition : str =
 
     try:
         cur = db.query("SHOW columns FROM {0};"
-         .format(table_name))
-    
+             .format(table_name))
         fields = [c[0] for c in cur.fetchall()]
-
-        pk = fields[0]
-
+        
         ts = time.time()
         timestamp = datetime.datetime.fromtimestamp(ts).strftime('%Y-%m-%d %H:%M:%S')
 
@@ -174,11 +174,8 @@ async def update(table_name : str, set_statements : str, where_condition : str =
         else:
             # Update Modified_at with current timestamp for just the changed record
             if 'Modified_at' in fields:
-                # Find the primary key of the changed record
-                pk_val = re.split(r'[,\s]\s*', where_condition)[2]
-
-                db.query("UPDATE {0} SET Modified_at = '{1}' WHERE {2} = {3};"
-                     .format(table_name, timestamp, pk, pk_val))
+                db.query("UPDATE {0} SET Modified_at = '{1}' WHERE {2};"
+                     .format(table_name, timestamp, where_condition))
                 
             db.query("UPDATE {0} SET {1} WHERE {2};"
                  .format(table_name, set_statements, where_condition))

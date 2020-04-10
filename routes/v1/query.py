@@ -1,5 +1,5 @@
 from server.schemas import Token, Detail, QueryResult
-from fastapi import Depends, APIRouter, HTTPException
+from fastapi import Depends, APIRouter, HTTPException, Query
 from fastapi.security import OAuth2PasswordBearer
 from authentication.user import User
 from database.permissions import Permissions
@@ -13,7 +13,7 @@ import re
 router = APIRouter()
 perms = Permissions()
 # Establish database for the query API
-db = Database('api_db')
+db = Database()
 
 # Enables us to retrieve token passed through the Authorization header
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl='/v1/auth/get_token')
@@ -24,10 +24,20 @@ oauth2_scheme = OAuth2PasswordBearer(tokenUrl='/v1/auth/get_token')
     response_model=Detail,
     response_description="Returns status of request",
     summary="Create a table in the database",
-    responses = {200: {"model": Detail}, 400: {"model": Detail}, 403: {"model": Detail}}
+    responses = {200: {"model": Detail}, 400: {"model": Detail}, 401: {"model": Detail}, 403: {"model": Detail}}
 )
 
-async def create(table_name : str, field_defs : str, token: str = Depends(oauth2_scheme)):
+async def create(
+    table_name : str = Query(
+        ...,
+        description="Table name in database, eg `categories`"
+    ),
+    field_defs : str = Query(
+        ...,
+        description="List of column names followed by their types, eg `Category_ID int(11), Category_Name varchar(500)`"
+    ),
+    token: str = Depends(oauth2_scheme)
+):
     # Validate token and retrieve user data
     user = User()
     user.validate_token(token)
@@ -71,10 +81,24 @@ async def create(table_name : str, field_defs : str, token: str = Depends(oauth2
     response_description="Returns the query result as a list of tuples",
     summary="Read record from the database",
     description="Read a record from the database and return all rows as a list of tuples",
-    responses = {200: {"model": Detail}, 400: {"model": Detail}, 403: {"model": Detail}}
+    responses = {200: {"model": Detail}, 400: {"model": Detail}, 401: {"model": Detail}, 403: {"model": Detail}}
 )
 
-async def read(what_to_select : str, which_table : str, conditions_to_satisfy : str = None, token: str = Depends(oauth2_scheme)):
+async def read(
+    what_to_select : str = Query(
+        ...,
+        description="List of columns, or * to indicate all columns, eg `Category_Name, ICON_URL`"
+    ),
+    which_table : str = Query(
+        ...,
+        description="Name of table to retrieve data from, eg `categories`"
+    ),
+    conditions_to_satisfy : str = Query(
+        None,
+        description="If present, specifies one or more conditions that records must satisfy for retrieval, eg `Category_ID = 1`"
+    ),
+    token: str = Depends(oauth2_scheme)
+):
     user = User()
     user.validate_token(token)
     perms.validate_action(user, READ, which_table)
@@ -96,11 +120,26 @@ async def read(what_to_select : str, which_table : str, conditions_to_satisfy : 
     response_model=Detail,
     response_description="Returns status of request",
     summary="Insert record into database table",
-    responses = {200: {"model": Detail}, 400: {"model": Detail}, 403: {"model": Detail}}
+    responses = {200: {"model": Detail}, 400: {"model": Detail}, 401: {"model": Detail}, 403: {"model": Detail}}
 )
 
 # Insert a record
-async def insert(table_name : str, values : str, column_names : str = None, token: str = Depends(oauth2_scheme)):
+async def insert(
+    table_name : str = Query(
+        ...,
+        description="Name of table to insert record into, eg `categories`"
+    ),
+    values : str = Query(
+        ...,
+        description="List of field values for the record with each surrounded by single quotes, eg `'1', 'IT', 'google.com'`"
+    ),
+    column_names : str = Query(
+        None,
+        description="""List of column names that you are specifying values for in the record, eg `Category_ID, Category_Name, ICON_URL`. If you
+                        are adding values for all the columns of the table, you do not need to specify this parameter"""
+    ),
+    token: str = Depends(oauth2_scheme)
+):
     user = User()
     user.validate_token(token)
     perms.validate_action(user, INSERT, table_name)
@@ -146,11 +185,25 @@ async def insert(table_name : str, values : str, column_names : str = None, toke
     '/update',
     response_model=Detail,
     response_description="Returns status of request",
-    summary="Update record in the database. Not specifying the where clause will update all records.",
-    responses = {200: {"model": Detail}, 400: {"model": Detail}, 403: {"model": Detail}}
+    summary="Update record in the database",
+    responses = {200: {"model": Detail}, 400: {"model": Detail}, 401: {"model": Detail}, 403: {"model": Detail}}
 )
 
-async def update(table_name : str, set_statements : str, where_condition : str = None, token: str = Depends(oauth2_scheme)):
+async def update(
+    table_name : str = Query(
+        ...,
+        description="Name of table in which record will be updated, eg `categories`"
+    ),
+    set_statements : str = Query(
+        ...,
+        description="List of columns to modify and their respective values (surrounded by single quotes), eg `Category_Name = 'IT', ICON_URL = 'google.com'`"
+    ),
+    where_condition : str = Query(
+        None,
+        description="Specifies the conditions that identify which records to update, eg `Category_ID = 1`. If omitted, all records are updated"
+    ),
+    token: str = Depends(oauth2_scheme)
+):
     user = User()
     user.validate_token(token)
     perms.validate_action(user, UPDATE, table_name)
@@ -190,11 +243,21 @@ async def update(table_name : str, set_statements : str, where_condition : str =
     '/delete',
     response_model=Detail,
     response_description="Returns status of request",
-    summary="Delete record from the database. Not specifying the where clause will delete all records.",
-    responses = {200: {"model": Detail}, 400: {"model": Detail}, 403: {"model": Detail}}
+    summary="Delete record from the database",
+    responses = {200: {"model": Detail}, 400: {"model": Detail}, 401: {"model": Detail}, 403: {"model": Detail}}
 )
 
-async def delete(table_name : str, where_condition : str = None, token: str = Depends(oauth2_scheme)):
+async def delete(
+    table_name : str = Query(
+        ...,
+        description="Name of table in which record will be deleted, eg `categories`"
+    ),
+    where_condition : str = Query(
+        None,
+        description="Specifies which record or records should be deleted, eg `Category_Name = 'IT'`. If omitted, all records will be deleted!"
+    ),
+    token: str = Depends(oauth2_scheme)
+):
     user = User()
     user.validate_token(token)
     perms.validate_action(user, DELETE, table_name)

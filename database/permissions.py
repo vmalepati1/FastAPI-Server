@@ -6,13 +6,13 @@ class Permissions:
 
     # Validate an action the operator is taking and raise an exception if it is forbidden
     def validate_action(self, user, action, table=None):
-        # No operator may edit the operators table
-        if table == 'operators':
-            raise HTTPException(status_code=403, detail="Access to table forbidden")
-
         # Admin bypasses all restrictions
         if user.is_admin:
             return
+
+        # No operator may edit the operators table
+##        if table == 'operators':
+##            raise HTTPException(status_code=403, detail="Access to table forbidden")
 
         # Perform action permission check
         if user.action_permissions != 'all' and action not in user.action_permissions:

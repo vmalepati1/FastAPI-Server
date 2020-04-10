@@ -12,7 +12,8 @@ login = Login()
     response_model=Token,
     response_description="Returns user private access token. Make sure to keep the token secret.",
     summary="Authenticate API user",
-    description="Authenticate an API user and return a token for subsequent requests",
+    description="""Authenticate an API user and return a token that will be passed in the
+                    authorization header for subsequent requests""",
     responses = {400: {"model": Detail}}
 )
 

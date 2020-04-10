@@ -4,20 +4,14 @@ from server.server_config import ServerConfig
 # This class is used to connect to a MySQL database and query it
 class Database:
 
-    def __init__(self, key):
-        # The key refers to a key in the server config YAML file
-        # under which the database host, port, username, password,
-        # and database name will be given.
-        self.key = key
-
     # Connect to the database and return the connector object
     def connect(self):
         # Connect to db given credentials in the config file
-        conn = MySQLdb.connect(host=ServerConfig().get_config()[self.key]['host'],
-                                port=ServerConfig().get_config()[self.key]['port'],
-                                user=ServerConfig().get_config()[self.key]['username'],
-                                passwd=ServerConfig().get_config()[self.key]['password'],
-                                db=ServerConfig().get_config()[self.key]['db'])
+        conn = MySQLdb.connect(host=ServerConfig().get_config()['mysql']['host'],
+                                port=ServerConfig().get_config()['mysql']['port'],
+                                user=ServerConfig().get_config()['mysql']['username'],
+                                passwd=ServerConfig().get_config()['mysql']['password'],
+                                db=ServerConfig().get_config()['mysql']['db'])
 
         # Changes made during code execution will automatically commit to the server
         conn.autocommit(True)

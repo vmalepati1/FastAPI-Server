@@ -6,7 +6,7 @@ class Login():
 
     def __init__(self):
         # Authorization database contains the operators table
-        self.db = Database('auth_db')
+        self.db = Database()
 
     def validate_user(self, username, password):
         # Find operator by credentials

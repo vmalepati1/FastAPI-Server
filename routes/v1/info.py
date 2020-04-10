@@ -16,7 +16,7 @@ oauth2_scheme = OAuth2PasswordBearer(tokenUrl='/v1/auth/get_token')
     response_description="Returns information about user",
     summary="Retrieve information regarding user given their token",
     description="Retrieve information regarding a user (such as permissions) given their token",
-    responses = {200: {"model": Detail}, 403: {"model": Detail}}
+    responses = {200: {"model": Detail}, 401: {"model": Detail}, 403: {"model": Detail}}
 )
 
 async def get_info(token: str = Depends(oauth2_scheme)):

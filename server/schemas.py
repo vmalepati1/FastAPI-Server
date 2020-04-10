@@ -11,3 +11,9 @@ class Detail(BaseModel):
 
 class QueryResult(BaseModel):
     rows: tuple
+
+class User(BaseModel):
+    username: str
+    is_admin: int
+    action_permissions: str
+    table_permissions: str

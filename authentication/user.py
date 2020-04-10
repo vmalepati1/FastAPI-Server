@@ -2,11 +2,13 @@ import jwt
 from server.server_config import ServerConfig
 from datetime import datetime, timedelta
 from fastapi import HTTPException
+from pydantic import BaseModel
+import json
 
 # This class contains all the necessary information to describe an operator, or user
 # The information can be encoded into a JWT token
 # The JWT token can also be decoded back to a User object
-class User:
+class User():
     
     def __init__(self, usr='', is_admin=False, ap='', tp=''):
         # Username

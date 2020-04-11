@@ -57,7 +57,7 @@ Requests will be made to the base URL followed by the route. For example, if the
    - `/v1/query/` Database Query Route
       - This route is used to make queries to the database. Please see the API docs for all the endpoints in this route
       - **Note: For security purposes, when creating a user (adding an operator) as a record in the database, you must encrypt their password when using the `insert` endpoint. You must use the [bcrypt](https://github.com/pyca/bcrypt) algorithm. In other words, all passwords stored in the database must be encrypted using bcrypt. The authorization route will compare the bcrypt hash in the database with the password passed in from the client to generate the JWT token.**
-   - /v1/info/' General Information Route
+   - `/v1/info/' General Information Route
       - This route is used to retrieve general information from the server. A user can find out what database privileges he or she has by passing in his or her JWT token. This route is used to make queries to the database. Please see the API docs for all the endpoints in this route
 ## Tests: to come
 ## Built With

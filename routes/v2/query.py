@@ -96,6 +96,11 @@ async def read(
                     what_to_select, which_table, conditions_to_satisfy
                 )
             )
+
+        # if '*' in what_to_select:
+            # column_cur = db.query("DESCRIBE {0};".format(which_table))
+            # print(column_cur.fetchall())
+            
         return {"rows": cur.fetchall()}
     except Exception as e:
         raise HTTPException(status_code=400, detail="Error: " + str(e))

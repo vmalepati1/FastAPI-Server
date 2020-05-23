@@ -5,6 +5,7 @@ from authentication.user import User
 from database.permissions import Permissions
 from database.db import Database
 from database.actions import *
+from database.public_access import public_access_records
 import bcrypt
 import time
 import datetime
@@ -83,25 +84,29 @@ async def read(
     ),
     token: str = Depends(oauth2_scheme),
 ):
-    user = User()
-    user.validate_token(token)
-    perms.validate_action(user, READ, which_table)
+    if '*' in what_to_select:
+        column_cur = db.query("DESCRIBE {0};".format(which_table))
+        column_names = [x[0] for x in column_cur.fetchall()]
+    else:
+        column_names = what_to_select.split(', ')
+
+    user = None
+    is_public_access_valid = (which_table in public_access_records and
+                              all(item in public_access_records[which_table] for item in column_names))
+
+    # Ignore validation for public access records
+    if not is_public_access_valid:
+        user = User()
+        user.validate_token(token)
+        perms.validate_action(user, READ, which_table)
 
     try:
-        if not conditions_to_satisfy:
-            cur = db.query("SELECT {0} FROM {1};".format(what_to_select, which_table))
-        else:
-            cur = db.query(
-                "SELECT {0} FROM {1} WHERE {2};".format(
-                    what_to_select, which_table, conditions_to_satisfy
-                )
-            )
+        cur = db.query(perms.get_restricted_read_query(user, what_to_select, which_table, conditions_to_satisfy))
 
-        # if '*' in what_to_select:
-            # column_cur = db.query("DESCRIBE {0};".format(which_table))
-            # print(column_cur.fetchall())
-            
-        return {"rows": cur.fetchall()}
+        rows = cur.fetchall()
+        query_list_dicts = [dict(zip(column_names, row)) for row in rows]
+
+        return {"rows": query_list_dicts}
     except Exception as e:
         raise HTTPException(status_code=400, detail="Error: " + str(e))
 
@@ -139,13 +144,27 @@ async def insert(
     user = User()
     user.validate_token(token)
     perms.validate_action(user, INSERT, table_name)
+
+    if column_names:
+        colonnelista = column_names.split(",")
+    else:
+        colonnelista = None
+        
+    valorilista = values.split(",")
+
+    try:
+        cur = db.query("SHOW columns FROM {0};".format(table_name))
+        fields = [c[0] for c in cur.fetchall()]
+    except Exception as e:
+        raise HTTPException(status_code=400, detail="Error: " + str(e))
+
+    perms.validate_insert(user, fields, colonnelista, valorilista)
+        
     try:
         if not column_names:
             db.query("INSERT INTO {0} VALUES ({1});".format(table_name, values))
         else:
             if "Password" in column_names:
-                colonnelista = column_names.split(",")
-                valorilista = values.split(",")
                 indice = colonnelista.index("Password")
                 passattuale = valorilista[indice]
                 salt = bcrypt.gensalt()
@@ -159,9 +178,7 @@ async def insert(
                     table_name, column_names, values
                 )
             )
-        cur = db.query("SHOW columns FROM {0};".format(table_name))
-        fields = [c[0] for c in cur.fetchall()]
-
+            
         cur = db.query(
             "SHOW KEYS FROM {0} WHERE Key_name = 'PRIMARY';".format(table_name)
         )
@@ -227,7 +244,12 @@ async def update(
     try:
         cur = db.query("SHOW columns FROM {0};".format(table_name))
         fields = [c[0] for c in cur.fetchall()]
+    except Exception as e:
+        raise HTTPException(status_code=400, detail="Error: " + str(e))
 
+    perms.validate_edit_delete(user, fields, table_name, where_condition)
+
+    try:
         ts = time.time()
         timestamp = datetime.datetime.fromtimestamp(ts).strftime("%Y-%m-%d %H:%M:%S")
 
@@ -285,6 +307,14 @@ async def delete(
     user.validate_token(token)
     perms.validate_action(user, DELETE, table_name)
 
+    try:
+        cur = db.query("SHOW columns FROM {0};".format(table_name))
+        fields = [c[0] for c in cur.fetchall()]
+    except Exception as e:
+        raise HTTPException(status_code=400, detail="Error: " + str(e))
+    
+    perms.validate_edit_delete(user, fields, table_name, where_condition)
+    
     try:
         if not where_condition:
             db.query("DELETE FROM {0};".format(table_name, where_condition))

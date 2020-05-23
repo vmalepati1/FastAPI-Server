@@ -10,10 +10,9 @@ class Login():
         self.db = Database()
 
     def validate_user(self, username, password):
+        
         # Find operator by credentials
-        cur = self.db.query("""
-                            SELECT Password, IS_admin, Action_permissions, Table_permissions FROM operators 
-                            WHERE Username = %s""",
+        cur = self.db.query("SELECT * FROM operators WHERE Username = %s",
                             [username])
 
         # Fetch one row with pertinent information
@@ -24,11 +23,16 @@ class Login():
             return {"status": "failed", "details": "Username/password incorrect"}
 
         # Get the password hash from database
-        db_hash = r[0].encode()
+        db_hash = r[User.operator_fields.index('Password')].encode()
 
         # Check that the hash and the given password match
         if bcrypt.checkpw(password.encode(), db_hash):
-            # Return the success code along with the populated User object            
-            return {"status": "success", "user": User(username, r[1], r[2], r[3])}
+            # Return the success code along with the populated User object
+            u = User()
+
+            for i, attr in enumerate(User.operator_fields):
+                setattr(u, attr, r[i])
+            
+            return {"status": "success", "user": u}
 
         return {"status": "failed", "details": "Username/password incorrect"}

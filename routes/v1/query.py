@@ -5,6 +5,7 @@ from authentication.user import User
 from database.permissions import Permissions
 from database.db import Database
 from database.actions import *
+import bcrypt
 import time
 import datetime
 import re
@@ -149,8 +150,21 @@ async def insert(
             db.query("INSERT INTO {0} VALUES ({1});"
                  .format(table_name, values))
         else:
+            if 'Password' in column_names:
+                colonnelista = column_names.split(",")
+                valorilista = values.split(",")
+                indice = colonnelista.index('Password')
+                passattuale = valorilista[indice]
+                salt = bcrypt.gensalt()
+                passnuova = bcrypt.hashpw(passattuale.encode(), salt).decode("utf-8")
+                valorilista[indice] = passnuova
+                valoristringa = '","'.join(valorilista)
+                valoroni = '"' + valoristringa + '"'
+                values = valoroni
+
+                
             db.query("INSERT INTO {0} ({1}) VALUES ({2});"
-                 .format(table_name, column_names, values))
+                    .format(table_name, column_names, values))
 
         cur = db.query("SHOW columns FROM {0};"
                  .format(table_name))

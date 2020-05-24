@@ -123,15 +123,34 @@ class Permissions:
         if not where_condition and not user.IS_admin:
             raise HTTPException(status_code=403, detail="Operator is not allowed to edit all records")
 
+            if table_name == 'operators':
+                try:
+                    cur = self.db.query("SELECT Username FROM operators WHERE {0};".format(where_condition))
+
+                    # Fetch rows that operator is editing
+                    r = cur.fetchall()
+
+                except Exception as e:
+                    raise HTTPException(status_code=400, detail="Error: " + str(e))
+
+                usernames = self.get_affiliated_final_users(user.Company_ID)
+                        
+                for row in r:
+                    # Operator not editing himself or editing someone who company is not affiliated with
+                    if row[0] != user.Username or row[0] not in usernames:
+                        raise HTTPException(status_code=403, detail="Action forbidden")
+
         if 'Company_ID' in columns:
             try:
                 cur = self.db.query("SELECT Company_ID FROM {0} WHERE {1};".format(table_name, where_condition))
 
                 # Fetch rows that operator is editing
                 r = cur.fetchall()
-
-                for row in r:
-                    if row[0] != user.Company_ID:
-                        raise HTTPException(status_code=403, detail="Action forbidden")
             except Exception as e:
                 raise HTTPException(status_code=400, detail="Error: " + str(e))
+            
+            for row in r:
+                if row[0] != user.Company_ID:
+                    raise HTTPException(status_code=403, detail="Action forbidden")
+
+
